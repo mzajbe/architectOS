@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { clampZoom } from "@/lib/canvas/camera";
-import type { Camera, CanvasState } from "@/lib/canvas/types";
+import type { Camera, CanvasState, DraggingEdge } from "@/lib/canvas/types";
 
 type ActiveTool = CanvasState["activeTool"];
 
@@ -10,11 +10,14 @@ type UIStore = {
   camera: Camera;
   selectedNodeId: string | null;
   activeTool: ActiveTool;
+  draggingEdge: DraggingEdge | null;
   setCamera: (camera: Camera) => void;
   panCamera: (dx: number, dy: number) => void;
   zoomCamera: (delta: number, centerX: number, centerY: number) => void;
   setSelectedNodeId: (id: string | null) => void;
   setActiveTool: (tool: ActiveTool) => void;
+  setDraggingEdge: (edge: DraggingEdge) => void;
+  clearDraggingEdge: () => void;
 };
 
 const initialCamera: Camera = { x: 0, y: 0, zoom: 1 };
@@ -23,6 +26,7 @@ export const useUIStore = create<UIStore>((set) => ({
   camera: initialCamera,
   selectedNodeId: "node-1",
   activeTool: "select",
+  draggingEdge: null,
   setCamera: (camera) => set({ camera }),
   panCamera: (dx, dy) =>
     set((state) => ({
@@ -48,4 +52,6 @@ export const useUIStore = create<UIStore>((set) => ({
     }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   setActiveTool: (tool) => set({ activeTool: tool }),
+  setDraggingEdge: (edge) => set({ draggingEdge: edge }),
+  clearDraggingEdge: () => set({ draggingEdge: null }),
 }));

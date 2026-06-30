@@ -28,6 +28,7 @@ export function useCanvas(
         graphState.edges,
         uiState.camera,
         uiState.selectedNodeId,
+        uiState.draggingEdge,
       );
     };
 

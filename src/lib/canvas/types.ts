@@ -24,6 +24,8 @@ export interface Edge {
   id: string;
   fromNodeId: string;
   toNodeId: string;
+  fromPortId?: string;
+  toPortId?: string;
 }
 
 export interface Camera {
@@ -32,10 +34,17 @@ export interface Camera {
   zoom: number;
 }
 
+export interface DraggingEdge {
+  fromPort: Port;
+  currentX: number;
+  currentY: number;
+}
+
 export interface CanvasState {
   nodes: Node[];
   edges: Edge[];
   camera: Camera;
   selectedNodeId: string | null;
   activeTool: "select" | "add-node" | "pan";
+  draggingEdge: DraggingEdge | null;
 }

@@ -26,6 +26,7 @@ const tools: Tool[] = [
 
 export function Toolbar() {
   const activeTool = useUIStore((state) => state.activeTool);
+  const clearDraggingEdge = useUIStore((state) => state.clearDraggingEdge);
   const setActiveTool = useUIStore((state) => state.setActiveTool);
   const setSelectedNodeId = useUIStore((state) => state.setSelectedNodeId);
   const clearCanvas = useGraphStore((state) => state.clearCanvas);
@@ -40,6 +41,7 @@ export function Toolbar() {
     }
 
     clearCanvas();
+    clearDraggingEdge();
     setSelectedNodeId(null);
     setActiveTool("select");
   };

@@ -41,6 +41,7 @@ export function useKeyboard() {
       }
 
       if (event.key === "Escape") {
+        uiStore.clearDraggingEdge();
         uiStore.setSelectedNodeId(null);
         uiStore.setActiveTool("select");
       }

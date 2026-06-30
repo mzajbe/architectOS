@@ -4,7 +4,7 @@ import {
   isPointInRect,
   screenToWorld,
 } from "./math";
-import type { Camera, Edge, Node, Point, Port } from "./types";
+import type { Camera, DraggingEdge, Edge, Node, Point, Port } from "./types";
 
 type Size = {
   width: number;
@@ -24,6 +24,7 @@ export class CanvasEngine {
   private nodes: Node[];
   private edges: Edge[];
   private selectedNodeId: string | null;
+  private draggingEdge: DraggingEdge | null;
   private hoveredPortId: string | null = null;
   private width = 1;
   private height = 1;
@@ -42,6 +43,7 @@ export class CanvasEngine {
     this.nodes = [];
     this.edges = [];
     this.selectedNodeId = null;
+    this.draggingEdge = null;
     this.resizeHandler = () => {
       this.resize();
       this.render();
@@ -56,11 +58,13 @@ export class CanvasEngine {
     edges: Edge[],
     camera: Camera,
     selectedNodeId: string | null,
+    draggingEdge: DraggingEdge | null = null,
   ): void {
     this.nodes = nodes;
     this.edges = edges;
     this.camera = camera;
     this.selectedNodeId = selectedNodeId;
+    this.draggingEdge = draggingEdge;
     this.render();
   }
 
@@ -130,6 +134,7 @@ export class CanvasEngine {
     this.ctx.translate(this.camera.x, this.camera.y);
     this.ctx.scale(this.camera.zoom, this.camera.zoom);
     this.drawEdges();
+    this.drawDraggingEdge();
     this.drawNodes();
     this.ctx.restore();
   }
@@ -166,8 +171,14 @@ export class CanvasEngine {
         continue;
       }
 
-      const start = getNodeCenter(from);
-      const end = getNodeCenter(to);
+      const startPort = edge.fromPortId
+        ? getNodePorts(from).find((port) => port.id === edge.fromPortId)
+        : null;
+      const endPort = edge.toPortId
+        ? getNodePorts(to).find((port) => port.id === edge.toPortId)
+        : null;
+      const start = startPort ? getPortPosition(from, startPort) : getNodeCenter(from);
+      const end = endPort ? getPortPosition(to, endPort) : getNodeCenter(to);
       const { control1, control2 } = getBezierCurve(start, end);
 
       this.ctx.beginPath();
@@ -183,6 +194,45 @@ export class CanvasEngine {
       this.ctx.stroke();
     }
 
+    this.ctx.restore();
+  }
+
+  private drawDraggingEdge(): void {
+    if (!this.draggingEdge) {
+      return;
+    }
+
+    const draggingEdge = this.draggingEdge;
+    const fromNode = this.nodes.find(
+      (node) => node.id === draggingEdge.fromPort.nodeId,
+    );
+
+    if (!fromNode) {
+      return;
+    }
+
+    const start = getPortPosition(fromNode, draggingEdge.fromPort);
+    const end = {
+      x: draggingEdge.currentX,
+      y: draggingEdge.currentY,
+    };
+    const { control1, control2 } = getBezierCurve(start, end);
+
+    this.ctx.save();
+    this.ctx.strokeStyle = fromNode.color;
+    this.ctx.lineWidth = 2 / this.camera.zoom;
+    this.ctx.setLineDash([8 / this.camera.zoom, 6 / this.camera.zoom]);
+    this.ctx.beginPath();
+    this.ctx.moveTo(start.x, start.y);
+    this.ctx.bezierCurveTo(
+      control1.x,
+      control1.y,
+      control2.x,
+      control2.y,
+      end.x,
+      end.y,
+    );
+    this.ctx.stroke();
     this.ctx.restore();
   }
 
@@ -265,6 +315,7 @@ export function renderGraph(
   nodes: Node[],
   edges: Edge[],
   selectedNodeId: string | null,
+  draggingEdge: DraggingEdge | null = null,
 ) {
   ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
   drawGridLines(ctx, canvasSize, camera);
@@ -274,6 +325,7 @@ export function renderGraph(
   ctx.scale(camera.zoom, camera.zoom);
 
   edges.forEach((edge) => drawEdge(ctx, edge, nodes, camera));
+  drawDraggingEdge(ctx, draggingEdge, nodes, camera);
   nodes.forEach((node) => drawNode(ctx, node, node.id === selectedNodeId, camera));
 
   ctx.restore();
@@ -322,13 +374,53 @@ function drawEdge(
     return;
   }
 
-  const start = getNodeCenter(from);
-  const end = getNodeCenter(to);
+  const startPort = edge.fromPortId
+    ? getNodePorts(from).find((port) => port.id === edge.fromPortId)
+    : null;
+  const endPort = edge.toPortId
+    ? getNodePorts(to).find((port) => port.id === edge.toPortId)
+    : null;
+  const start = startPort ? getPortPosition(from, startPort) : getNodeCenter(from);
+  const end = endPort ? getPortPosition(to, endPort) : getNodeCenter(to);
   const { control1, control2 } = getBezierCurve(start, end);
 
   ctx.save();
   ctx.strokeStyle = "#64748b";
   ctx.lineWidth = 2 / camera.zoom;
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDraggingEdge(
+  ctx: CanvasRenderingContext2D,
+  draggingEdge: DraggingEdge | null,
+  nodes: Node[],
+  camera: Camera,
+) {
+  if (!draggingEdge) {
+    return;
+  }
+
+  const fromNode = nodes.find((node) => node.id === draggingEdge.fromPort.nodeId);
+
+  if (!fromNode) {
+    return;
+  }
+
+  const start = getPortPosition(fromNode, draggingEdge.fromPort);
+  const end = {
+    x: draggingEdge.currentX,
+    y: draggingEdge.currentY,
+  };
+  const { control1, control2 } = getBezierCurve(start, end);
+
+  ctx.save();
+  ctx.strokeStyle = fromNode.color;
+  ctx.lineWidth = 2 / camera.zoom;
+  ctx.setLineDash([8 / camera.zoom, 6 / camera.zoom]);
   ctx.beginPath();
   ctx.moveTo(start.x, start.y);
   ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y);

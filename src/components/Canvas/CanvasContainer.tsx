@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MouseEvent, WheelEvent } from "react";
 import { clampZoom } from "@/lib/canvas/camera";
 import { generateId, screenToWorld } from "@/lib/canvas/math";
-import type { Camera, Point } from "@/lib/canvas/types";
+import type { Camera, Point, Port } from "@/lib/canvas/types";
 import { useGraphStore } from "@/lib/store/graphStore";
 import { useUIStore } from "@/lib/store/uiStore";
 import { useCanvas } from "../../hooks/useCanvas";
@@ -30,6 +30,7 @@ export function CanvasContainer() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engine = useCanvas(canvasRef);
   const activeTool = useUIStore((state) => state.activeTool);
+  const draggingEdge = useUIStore((state) => state.draggingEdge);
   const dragState = useRef<DragState>(null);
   const zoomAnimationRef = useRef<number | null>(null);
   const [dragMode, setDragMode] = useState<"node" | "pan" | null>(null);
@@ -62,8 +63,23 @@ export function CanvasContainer() {
       activeTool: currentTool,
       camera,
       setActiveTool,
+      setDraggingEdge,
       setSelectedNodeId,
     } = useUIStore.getState();
+    const hitPort = engine?.hitTestPort(screenPoint.x, screenPoint.y);
+
+    if (hitPort?.type === "output") {
+      const worldPoint = screenToWorld(screenPoint.x, screenPoint.y, camera);
+
+      setDraggingEdge({
+        fromPort: hitPort,
+        currentX: worldPoint.x,
+        currentY: worldPoint.y,
+      });
+      setHoveredPortId(null);
+      setSelectedNodeId(null);
+      return;
+    }
 
     if (currentTool === "pan") {
       dragState.current = { mode: "pan", lastPoint: screenPoint };
@@ -109,6 +125,24 @@ export function CanvasContainer() {
   const handleMouseMove = (event: MouseEvent<HTMLCanvasElement>) => {
     const drag = dragState.current;
     const screenPoint = getCanvasPoint(event);
+    const uiStore = useUIStore.getState();
+
+    if (uiStore.draggingEdge) {
+      const worldPoint = screenToWorld(
+        screenPoint.x,
+        screenPoint.y,
+        uiStore.camera,
+      );
+      const port = engine?.hitTestPort(screenPoint.x, screenPoint.y) ?? null;
+
+      uiStore.setDraggingEdge({
+        ...uiStore.draggingEdge,
+        currentX: worldPoint.x,
+        currentY: worldPoint.y,
+      });
+      setHoveredPortId(port?.id ?? null);
+      return;
+    }
 
     if (!drag) {
       const port = engine?.hitTestPort(screenPoint.x, screenPoint.y) ?? null;
@@ -146,7 +180,44 @@ export function CanvasContainer() {
     dragState.current = null;
     setDragMode(null);
     setHoveredPortId(null);
+    useUIStore.getState().clearDraggingEdge();
     engine?.hitTestPort(Number.NaN, Number.NaN);
+  };
+
+  const handleMouseUp = (event: MouseEvent<HTMLCanvasElement>) => {
+    const screenPoint = getCanvasPoint(event);
+    const uiStore = useUIStore.getState();
+    const activeDraggingEdge = uiStore.draggingEdge;
+
+    if (activeDraggingEdge) {
+      const targetPort = engine?.hitTestPort(screenPoint.x, screenPoint.y) ?? null;
+
+      if (targetPort && canCreateEdge(activeDraggingEdge.fromPort, targetPort)) {
+        const { edges, addEdge } = useGraphStore.getState();
+        const fromPort = activeDraggingEdge.fromPort;
+        const isDuplicate = edges.some(
+          (edge) =>
+            edge.fromPortId === fromPort.id && edge.toPortId === targetPort.id,
+        );
+
+        if (!isDuplicate) {
+          addEdge({
+            id: generateId(),
+            fromNodeId: fromPort.nodeId,
+            toNodeId: targetPort.nodeId,
+            fromPortId: fromPort.id,
+            toPortId: targetPort.id,
+          });
+        }
+      }
+
+      uiStore.clearDraggingEdge();
+      setHoveredPortId(null);
+      engine?.hitTestPort(Number.NaN, Number.NaN);
+      return;
+    }
+
+    stopDrag();
   };
 
   const animateZoom = (delta: number, center: Point) => {
@@ -189,7 +260,7 @@ export function CanvasContainer() {
   };
 
   const cursor =
-    hoveredPortId
+    draggingEdge || hoveredPortId
       ? "crosshair"
       : dragMode === "pan"
       ? "grabbing"
@@ -207,7 +278,7 @@ export function CanvasContainer() {
       onMouseDown={handleMouseDown}
       onMouseLeave={stopDrag}
       onMouseMove={handleMouseMove}
-      onMouseUp={stopDrag}
+      onMouseUp={handleMouseUp}
       onWheel={handleWheel}
       ref={canvasRef}
       style={{
@@ -232,4 +303,12 @@ function getZoomTarget(camera: Camera, delta: number, center: Point): Camera {
 
 function lerp(from: number, to: number, amount: number) {
   return from + (to - from) * amount;
+}
+
+function canCreateEdge(fromPort: Port, toPort: Port) {
+  return (
+    fromPort.type === "output" &&
+    toPort.type === "input" &&
+    fromPort.nodeId !== toPort.nodeId
+  );
 }
