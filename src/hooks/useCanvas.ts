@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CanvasEngine } from "@/lib/canvas/engine";
 
 type Size = {
   width: number;
@@ -9,6 +10,7 @@ type Size = {
 
 export function useCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const engineRef = useRef<CanvasEngine | null>(null);
   const [size, setSize] = useState<Size>({ width: 0, height: 0 });
 
   useEffect(() => {
@@ -19,16 +21,13 @@ export function useCanvas() {
       return;
     }
 
+    const engine = new CanvasEngine(canvas);
+    engineRef.current = engine;
+
     const resize = () => {
       const rect = parent.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
       const width = Math.max(1, Math.floor(rect.width));
       const height = Math.max(1, Math.floor(rect.height));
-
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
 
       setSize({ width, height });
     };
@@ -38,8 +37,12 @@ export function useCanvas() {
     const observer = new ResizeObserver(resize);
     observer.observe(parent);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      engine.destroy();
+      engineRef.current = null;
+    };
   }, []);
 
-  return { canvasRef, size };
+  return { canvasRef, engineRef, size };
 }
