@@ -1,26 +1,95 @@
 # Architectos
 
-Architectos is a Next.js canvas workspace starter. The app is organized under `src/` with dedicated folders for the App Router, canvas components, UI controls, canvas math/engine utilities, stores, and hooks.
+Architectos is a lightweight canvas workspace for sketching node-based ideas, systems, and architectural relationships. It provides a focused MVP for creating, moving, selecting, deleting, panning, zooming, and persisting nodes directly in the browser.
 
-## Getting Started
+## Features
 
-First, run the development server:
+- Full-screen canvas workspace with a subtle grid
+- Select, Add Node, and Pan tools
+- Click-to-create nodes
+- Drag-to-move nodes
+- Node selection and deletion
+- Smooth zooming at the cursor position
+- Keyboard shortcuts for fast tool switching
+- Local persistence with `localStorage`
+- Clear Canvas action with confirmation
+- Empty-canvas welcome message
+
+## Tech Stack
+
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- Zustand for client state
+- Radix Icons for toolbar icons
+- HTML Canvas 2D rendering
+- Browser `localStorage` persistence
+
+## Installation
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` in your browser.
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+Build for production:
 
-## Structure
+```bash
+npm run build
+```
+
+Start the production server:
+
+```bash
+npm run start
+```
+
+## How To Use
+
+Use the toolbar at the top of the screen to switch tools:
+
+- **Select**: select and drag nodes
+- **Add Node**: click the canvas to create a node
+- **Pan**: drag the canvas to move around
+- **Clear Canvas**: remove all nodes and edges after confirmation
+
+Keyboard shortcuts:
+
+| Shortcut | Action |
+| --- | --- |
+| `V` or `1` | Select tool |
+| `N` or `2` | Add Node tool |
+| `H` or `3` | Pan tool |
+| `Delete` or `Backspace` | Delete selected node |
+| `Escape` | Deselect node and switch to Select |
+
+Canvas gestures:
+
+- Drag a selected node to move it
+- Drag while Pan is active to move the camera
+- Scroll to zoom in or out at the cursor position
+
+Your canvas is saved automatically in the browser and restored after refresh.
+
+## Screenshots
+
+Placeholder:
+
+```text
+Add screenshots here once the first visual pass is finalized.
+```
+
+## Project Structure
 
 ```text
 src/
@@ -33,16 +102,17 @@ src/
   lib/
     canvas/
     store/
+    storage.ts
 public/
   icons/
 ```
 
-## Notes
+## Future Improvements
 
-This project uses Tailwind CSS v4 through `postcss.config.mjs`, which is the setup shown in the installed Next.js 16 docs.
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Edge creation (connect nodes)
+- Node resizing
+- Multiple node types
+- Undo/Redo
+- Export to PNG/SVG
+- Real-time collaboration
+- Web Workers for heavy computations
