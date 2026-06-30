@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MouseEvent, WheelEvent } from "react";
-import { useCanvas } from "@/hooks/useCanvas";
-import { useKeyboard } from "@/hooks/useKeyboard";
+import { clampZoom } from "@/lib/canvas/camera";
 import { generateId, screenToWorld } from "@/lib/canvas/math";
-import type { Point } from "@/lib/canvas/types";
+import type { Camera, Point } from "@/lib/canvas/types";
 import { useGraphStore } from "@/lib/store/graphStore";
 import { useUIStore } from "@/lib/store/uiStore";
+import { useCanvas } from "../../hooks/useCanvas";
+import { useKeyboard } from "../../hooks/useKeyboard";
 
 type DragState =
   | {
@@ -23,14 +24,25 @@ type DragState =
 
 const NODE_WIDTH = 168;
 const NODE_HEIGHT = 68;
+const ZOOM_ANIMATION_MS = 140;
 
 export function CanvasContainer() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engine = useCanvas(canvasRef);
   const activeTool = useUIStore((state) => state.activeTool);
   const dragState = useRef<DragState>(null);
+  const zoomAnimationRef = useRef<number | null>(null);
+  const [dragMode, setDragMode] = useState<"node" | "pan" | null>(null);
 
   useKeyboard();
+
+  useEffect(() => {
+    return () => {
+      if (zoomAnimationRef.current !== null) {
+        cancelAnimationFrame(zoomAnimationRef.current);
+      }
+    };
+  }, []);
 
   const getCanvasPoint = (
     event: MouseEvent<HTMLCanvasElement> | WheelEvent<HTMLCanvasElement>,
@@ -54,6 +66,7 @@ export function CanvasContainer() {
 
     if (currentTool === "pan") {
       dragState.current = { mode: "pan", lastPoint: screenPoint };
+      setDragMode("pan");
       return;
     }
 
@@ -87,6 +100,7 @@ export function CanvasContainer() {
           nodeId: hitNode.id,
           lastPoint: screenPoint,
         };
+        setDragMode("node");
       }
     }
   };
@@ -112,6 +126,7 @@ export function CanvasContainer() {
 
       if (!node) {
         dragState.current = null;
+        setDragMode(null);
         return;
       }
 
@@ -126,16 +141,58 @@ export function CanvasContainer() {
 
   const stopDrag = () => {
     dragState.current = null;
+    setDragMode(null);
+  };
+
+  const animateZoom = (delta: number, center: Point) => {
+    if (zoomAnimationRef.current !== null) {
+      cancelAnimationFrame(zoomAnimationRef.current);
+    }
+
+    const { camera, setCamera } = useUIStore.getState();
+    const fromCamera = camera;
+    const targetCamera = getZoomTarget(camera, delta, center);
+    const startedAt = performance.now();
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / ZOOM_ANIMATION_MS);
+      const eased = 1 - Math.pow(1 - progress, 3);
+
+      setCamera({
+        x: lerp(fromCamera.x, targetCamera.x, eased),
+        y: lerp(fromCamera.y, targetCamera.y, eased),
+        zoom: lerp(fromCamera.zoom, targetCamera.zoom, eased),
+      });
+
+      if (progress < 1) {
+        zoomAnimationRef.current = requestAnimationFrame(tick);
+      } else {
+        zoomAnimationRef.current = null;
+      }
+    };
+
+    zoomAnimationRef.current = requestAnimationFrame(tick);
   };
 
   const handleWheel = (event: WheelEvent<HTMLCanvasElement>) => {
     event.preventDefault();
 
     const point = getCanvasPoint(event);
-    const delta = event.deltaY > 0 ? -0.08 : 0.08;
+    const delta = event.deltaY > 0 ? -0.12 : 0.12;
 
-    useUIStore.getState().zoomCamera(delta, point.x, point.y);
+    animateZoom(delta, point);
   };
+
+  const cursor =
+    dragMode === "pan"
+      ? "grabbing"
+      : dragMode === "node"
+        ? "grabbing"
+        : activeTool === "pan"
+          ? "grab"
+          : activeTool === "add-node"
+            ? "copy"
+            : "default";
 
   return (
     <canvas
@@ -147,9 +204,25 @@ export function CanvasContainer() {
       onWheel={handleWheel}
       ref={canvasRef}
       style={{
-        cursor: activeTool === "pan" ? "grab" : "crosshair",
+        cursor,
         touchAction: "none",
       }}
     />
   );
+}
+
+function getZoomTarget(camera: Camera, delta: number, center: Point): Camera {
+  const zoom = clampZoom(camera.zoom + delta);
+  const worldX = (center.x - camera.x) / camera.zoom;
+  const worldY = (center.y - camera.y) / camera.zoom;
+
+  return {
+    zoom,
+    x: center.x - worldX * zoom,
+    y: center.y - worldY * zoom,
+  };
+}
+
+function lerp(from: number, to: number, amount: number) {
+  return from + (to - from) * amount;
 }

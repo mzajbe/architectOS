@@ -8,6 +8,7 @@ type Size = {
 
 const GRID_SPACING = 32;
 const NODE_RADIUS = 8;
+const EMPTY_MESSAGE = "Click 'Add Node' or press 'N' to create your first node";
 
 export class CanvasEngine {
   private canvas: HTMLCanvasElement;
@@ -89,6 +90,10 @@ export class CanvasEngine {
   private render(): void {
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.drawGrid();
+
+    if (this.nodes.length === 0) {
+      this.drawEmptyState();
+    }
 
     this.ctx.save();
     this.ctx.translate(this.camera.x, this.camera.y);
@@ -180,6 +185,17 @@ export class CanvasEngine {
 
       this.ctx.restore();
     }
+  }
+
+  private drawEmptyState(): void {
+    this.ctx.save();
+    this.ctx.fillStyle = "rgba(15, 23, 42, 0.68)";
+    this.ctx.font =
+      "500 15px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+    this.ctx.fillText(EMPTY_MESSAGE, this.width / 2, this.height / 2);
+    this.ctx.restore();
   }
 }
 
