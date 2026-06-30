@@ -1,4 +1,4 @@
-import { getNodeCenter } from "./math";
+import { getBezierCurve } from "./math";
 import type { Camera, Edge, Node } from "./types";
 
 type Size = {
@@ -73,23 +73,23 @@ function drawEdge(
 
   const start = getNodeCenter(from);
   const end = getNodeCenter(to);
-  const controlOffset = Math.max(80, Math.abs(end.x - start.x) * 0.35);
+  const { control1, control2 } = getBezierCurve(start, end);
 
   ctx.save();
   ctx.strokeStyle = "#64748b";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(start.x, start.y);
-  ctx.bezierCurveTo(
-    start.x + controlOffset,
-    start.y,
-    end.x - controlOffset,
-    end.y,
-    end.x,
-    end.y,
-  );
+  ctx.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y);
   ctx.stroke();
   ctx.restore();
+}
+
+function getNodeCenter(node: Node) {
+  return {
+    x: node.x + node.width / 2,
+    y: node.y + node.height / 2,
+  };
 }
 
 function drawNode(

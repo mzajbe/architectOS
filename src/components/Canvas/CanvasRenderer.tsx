@@ -2,9 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import type { PointerEvent, WheelEvent } from "react";
-import { screenToWorld } from "@/lib/canvas/camera";
 import { renderGraph } from "@/lib/canvas/engine";
-import { hitTestNodes } from "@/lib/canvas/math";
+import { generateId, isPointInRect, screenToWorld } from "@/lib/canvas/math";
 import type { Point } from "@/lib/canvas/types";
 import { useGraphStore } from "@/lib/store/graphStore";
 import { useUIStore } from "@/lib/store/uiStore";
@@ -65,14 +64,15 @@ export function CanvasRenderer() {
       return;
     }
 
-    const worldPoint = screenToWorld(screenPoint, camera);
+    const worldPoint = screenToWorld(screenPoint.x, screenPoint.y, camera);
 
     if (activeTool === "add-node") {
-      const nextId = `node-${useGraphStore.getState().nodes.length + 1}`;
+      const nodeCount = useGraphStore.getState().nodes.length;
+      const nextId = generateId();
 
       useGraphStore.getState().addNode({
         id: nextId,
-        label: `Node ${useGraphStore.getState().nodes.length + 1}`,
+        label: `Node ${nodeCount + 1}`,
         color: "#ffffff",
         x: worldPoint.x - 84,
         y: worldPoint.y - 34,
@@ -84,7 +84,16 @@ export function CanvasRenderer() {
       return;
     }
 
-    const hitNode = hitTestNodes(worldPoint, useGraphStore.getState().nodes);
+    const hitNode = [...useGraphStore.getState().nodes]
+      .reverse()
+      .find((node) =>
+        isPointInRect(worldPoint, {
+          x: node.x,
+          y: node.y,
+          width: node.width,
+          height: node.height,
+        }),
+      );
     useUIStore.getState().setSelectedNodeId(hitNode?.id ?? null);
 
     if (hitNode) {

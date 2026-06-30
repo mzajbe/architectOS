@@ -1,31 +1,35 @@
-import type { Node, Point } from "./types";
+import type { Camera, Point } from "./types";
 
-type Rect = Point & {
+type Rect = {
+  x: number;
+  y: number;
   width: number;
   height: number;
 };
 
-export function distance(a: Point, b: Point) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-export function getNodeBounds(node: Node): Rect {
+export function screenToWorld(
+  screenX: number,
+  screenY: number,
+  camera: Camera,
+): Point {
   return {
-    x: node.x,
-    y: node.y,
-    width: node.width,
-    height: node.height,
+    x: (screenX - camera.x) / camera.zoom,
+    y: (screenY - camera.y) / camera.zoom,
   };
 }
 
-export function getNodeCenter(node: Node): Point {
+export function worldToScreen(
+  worldX: number,
+  worldY: number,
+  camera: Camera,
+): Point {
   return {
-    x: node.x + node.width / 2,
-    y: node.y + node.height / 2,
+    x: worldX * camera.zoom + camera.x,
+    y: worldY * camera.zoom + camera.y,
   };
 }
 
-export function pointInRect(point: Point, rect: Rect) {
+export function isPointInRect(point: Point, rect: Rect): boolean {
   return (
     point.x >= rect.x &&
     point.x <= rect.x + rect.width &&
@@ -34,39 +38,28 @@ export function pointInRect(point: Point, rect: Rect) {
   );
 }
 
-export function hitTestNodes(point: Point, nodes: Node[]) {
-  for (let index = nodes.length - 1; index >= 0; index -= 1) {
-    const node = nodes[index];
-
-    if (pointInRect(point, getNodeBounds(node))) {
-      return node;
-    }
-  }
-
-  return null;
-}
-
-export function cubicBezierPoint(
-  start: Point,
-  controlA: Point,
-  controlB: Point,
-  end: Point,
-  t: number,
-): Point {
-  const u = 1 - t;
-  const tt = t * t;
-  const uu = u * u;
+export function getBezierCurve(
+  from: Point,
+  to: Point,
+): { control1: Point; control2: Point } {
+  const offset = Math.max(80, Math.abs(to.x - from.x) * 0.35);
 
   return {
-    x:
-      uu * u * start.x +
-      3 * uu * t * controlA.x +
-      3 * u * tt * controlB.x +
-      tt * t * end.x,
-    y:
-      uu * u * start.y +
-      3 * uu * t * controlA.y +
-      3 * u * tt * controlB.y +
-      tt * t * end.y,
+    control1: {
+      x: from.x + offset,
+      y: from.y,
+    },
+    control2: {
+      x: to.x - offset,
+      y: to.y,
+    },
   };
+}
+
+export function generateId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
