@@ -33,6 +33,7 @@ export function CanvasContainer() {
   const dragState = useRef<DragState>(null);
   const zoomAnimationRef = useRef<number | null>(null);
   const [dragMode, setDragMode] = useState<"node" | "pan" | null>(null);
+  const [hoveredPortId, setHoveredPortId] = useState<string | null>(null);
 
   useKeyboard();
 
@@ -107,12 +108,14 @@ export function CanvasContainer() {
 
   const handleMouseMove = (event: MouseEvent<HTMLCanvasElement>) => {
     const drag = dragState.current;
+    const screenPoint = getCanvasPoint(event);
 
     if (!drag) {
+      const port = engine?.hitTestPort(screenPoint.x, screenPoint.y) ?? null;
+      setHoveredPortId(port?.id ?? null);
       return;
     }
 
-    const screenPoint = getCanvasPoint(event);
     const dx = screenPoint.x - drag.lastPoint.x;
     const dy = screenPoint.y - drag.lastPoint.y;
 
@@ -142,6 +145,8 @@ export function CanvasContainer() {
   const stopDrag = () => {
     dragState.current = null;
     setDragMode(null);
+    setHoveredPortId(null);
+    engine?.hitTestPort(Number.NaN, Number.NaN);
   };
 
   const animateZoom = (delta: number, center: Point) => {
@@ -184,7 +189,9 @@ export function CanvasContainer() {
   };
 
   const cursor =
-    dragMode === "pan"
+    hoveredPortId
+      ? "crosshair"
+      : dragMode === "pan"
       ? "grabbing"
       : dragMode === "node"
         ? "grabbing"

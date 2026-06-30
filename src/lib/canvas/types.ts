@@ -13,6 +13,13 @@ export interface Node {
   color: string;
 }
 
+export interface Port {
+  id: string;
+  nodeId: string;
+  position: "left" | "right" | "top" | "bottom";
+  type: "input" | "output";
+}
+
 export interface Edge {
   id: string;
   fromNodeId: string;

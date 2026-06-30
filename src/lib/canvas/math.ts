@@ -1,4 +1,4 @@
-import type { Camera, Point } from "./types";
+import type { Camera, Node, Point, Port } from "./types";
 
 type Rect = {
   x: number;
@@ -54,6 +54,31 @@ export function getBezierCurve(
       y: to.y,
     },
   };
+}
+
+export function getPortPosition(node: Node, port: Port): Point {
+  switch (port.position) {
+    case "left":
+      return {
+        x: node.x,
+        y: node.y + node.height / 2,
+      };
+    case "right":
+      return {
+        x: node.x + node.width,
+        y: node.y + node.height / 2,
+      };
+    case "top":
+      return {
+        x: node.x + node.width / 2,
+        y: node.y,
+      };
+    case "bottom":
+      return {
+        x: node.x + node.width / 2,
+        y: node.y + node.height,
+      };
+  }
 }
 
 export function generateId(): string {

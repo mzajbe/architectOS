@@ -1,5 +1,10 @@
-import { getBezierCurve, isPointInRect, screenToWorld } from "./math";
-import type { Camera, Edge, Node, Point } from "./types";
+import {
+  getBezierCurve,
+  getPortPosition,
+  isPointInRect,
+  screenToWorld,
+} from "./math";
+import type { Camera, Edge, Node, Point, Port } from "./types";
 
 type Size = {
   width: number;
@@ -8,6 +13,8 @@ type Size = {
 
 const GRID_SPACING = 32;
 const NODE_RADIUS = 8;
+const PORT_RADIUS = 4;
+const PORT_HOVER_RADIUS = 6;
 const EMPTY_MESSAGE = "Click 'Add Node' or press 'N' to create your first node";
 
 export class CanvasEngine {
@@ -17,6 +24,7 @@ export class CanvasEngine {
   private nodes: Node[];
   private edges: Edge[];
   private selectedNodeId: string | null;
+  private hoveredPortId: string | null = null;
   private width = 1;
   private height = 1;
   private resizeHandler: () => void;
@@ -67,6 +75,29 @@ export class CanvasEngine {
       }
     }
 
+    return null;
+  }
+
+  hitTestPort(screenX: number, screenY: number): Port | null {
+    const point = screenToWorld(screenX, screenY, this.camera);
+    const hitRadius = PORT_HOVER_RADIUS / this.camera.zoom;
+
+    for (let nodeIndex = this.nodes.length - 1; nodeIndex >= 0; nodeIndex -= 1) {
+      const node = this.nodes[nodeIndex];
+      const ports = getNodePorts(node);
+
+      for (let portIndex = ports.length - 1; portIndex >= 0; portIndex -= 1) {
+        const port = ports[portIndex];
+        const portPosition = getPortPosition(node, port);
+
+        if (distance(point, portPosition) <= hitRadius) {
+          this.setHoveredPort(port.id);
+          return port;
+        }
+      }
+    }
+
+    this.setHoveredPort(null);
     return null;
   }
 
@@ -184,6 +215,25 @@ export class CanvasEngine {
       );
 
       this.ctx.restore();
+      this.drawPorts(node);
+    }
+  }
+
+  private drawPorts(node: Node): void {
+    for (const port of getNodePorts(node)) {
+      const position = getPortPosition(node, port);
+      const isHovered = port.id === this.hoveredPortId;
+      const radius = (isHovered ? PORT_HOVER_RADIUS : PORT_RADIUS) / this.camera.zoom;
+
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.ctx.arc(position.x, position.y, radius, 0, Math.PI * 2);
+      this.ctx.fillStyle = "#ffffff";
+      this.ctx.fill();
+      this.ctx.lineWidth = 2 / this.camera.zoom;
+      this.ctx.strokeStyle = node.color;
+      this.ctx.stroke();
+      this.ctx.restore();
     }
   }
 
@@ -196,6 +246,15 @@ export class CanvasEngine {
     this.ctx.textBaseline = "middle";
     this.ctx.fillText(EMPTY_MESSAGE, this.width / 2, this.height / 2);
     this.ctx.restore();
+  }
+
+  private setHoveredPort(portId: string | null): void {
+    if (this.hoveredPortId === portId) {
+      return;
+    }
+
+    this.hoveredPortId = portId;
+    this.render();
   }
 }
 
@@ -308,6 +367,23 @@ function drawNode(
   );
 
   ctx.restore();
+  drawPorts(ctx, node, camera);
+}
+
+function drawPorts(ctx: CanvasRenderingContext2D, node: Node, camera: Camera) {
+  for (const port of getNodePorts(node)) {
+    const position = getPortPosition(node, port);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(position.x, position.y, PORT_RADIUS / camera.zoom, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.lineWidth = 2 / camera.zoom;
+    ctx.strokeStyle = node.color;
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function getNodeCenter(node: Node): Point {
@@ -315,6 +391,39 @@ function getNodeCenter(node: Node): Point {
     x: node.x + node.width / 2,
     y: node.y + node.height / 2,
   };
+}
+
+function getNodePorts(node: Node): Port[] {
+  return [
+    {
+      id: `${node.id}:left`,
+      nodeId: node.id,
+      position: "left",
+      type: "input",
+    },
+    {
+      id: `${node.id}:right`,
+      nodeId: node.id,
+      position: "right",
+      type: "output",
+    },
+    {
+      id: `${node.id}:top`,
+      nodeId: node.id,
+      position: "top",
+      type: "input",
+    },
+    {
+      id: `${node.id}:bottom`,
+      nodeId: node.id,
+      position: "bottom",
+      type: "output",
+    },
+  ];
+}
+
+function distance(a: Point, b: Point) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 function roundedRect(
