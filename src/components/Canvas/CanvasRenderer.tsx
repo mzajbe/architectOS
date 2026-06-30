@@ -2,12 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import type { PointerEvent, WheelEvent } from "react";
-import { panBy, screenToWorld, zoomAt } from "@/lib/canvas/camera";
+import { screenToWorld } from "@/lib/canvas/camera";
 import { renderGraph } from "@/lib/canvas/engine";
 import { hitTestNodes } from "@/lib/canvas/math";
 import type { Point } from "@/lib/canvas/types";
-import { graphStore, useGraphStore } from "@/lib/store/graphStore";
-import { uiStore, useUIStore } from "@/lib/store/uiStore";
+import { useGraphStore } from "@/lib/store/graphStore";
+import { useUIStore } from "@/lib/store/uiStore";
 import { useCanvas } from "@/hooks/useCanvas";
 
 type DragState =
@@ -26,9 +26,9 @@ export function CanvasRenderer() {
   const { canvasRef, size } = useCanvas();
   const nodes = useGraphStore((state) => state.nodes);
   const edges = useGraphStore((state) => state.edges);
-  const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
   const activeTool = useUIStore((state) => state.activeTool);
   const camera = useUIStore((state) => state.camera);
+  const selectedNodeId = useUIStore((state) => state.selectedNodeId);
   const dragState = useRef<DragState>(null);
 
   useEffect(() => {
@@ -68,16 +68,24 @@ export function CanvasRenderer() {
     const worldPoint = screenToWorld(screenPoint, camera);
 
     if (activeTool === "add-node") {
-      graphStore.addNode({
+      const nextId = `node-${useGraphStore.getState().nodes.length + 1}`;
+
+      useGraphStore.getState().addNode({
+        id: nextId,
+        label: `Node ${useGraphStore.getState().nodes.length + 1}`,
+        color: "#ffffff",
         x: worldPoint.x - 84,
         y: worldPoint.y - 34,
+        width: 168,
+        height: 68,
       });
-      uiStore.setActiveTool("select");
+      useUIStore.getState().setSelectedNodeId(nextId);
+      useUIStore.getState().setActiveTool("select");
       return;
     }
 
-    const hitNode = hitTestNodes(worldPoint, graphStore.getState().nodes);
-    graphStore.selectNode(hitNode?.id ?? null);
+    const hitNode = hitTestNodes(worldPoint, useGraphStore.getState().nodes);
+    useUIStore.getState().setSelectedNodeId(hitNode?.id ?? null);
 
     if (hitNode) {
       dragState.current = {
@@ -102,12 +110,20 @@ export function CanvasRenderer() {
     };
 
     if (drag.mode === "pan") {
-      uiStore.setCamera(panBy(uiStore.getState().camera, delta));
+      useUIStore.getState().panCamera(delta.x, delta.y);
     } else {
-      const nextCamera = uiStore.getState().camera;
-      graphStore.moveNode(drag.nodeId, {
-        x: delta.x / nextCamera.zoom,
-        y: delta.y / nextCamera.zoom,
+      const nextCamera = useUIStore.getState().camera;
+      const node = useGraphStore
+        .getState()
+        .nodes.find((currentNode) => currentNode.id === drag.nodeId);
+
+      if (!node) {
+        return;
+      }
+
+      useGraphStore.getState().updateNode(drag.nodeId, {
+        x: node.x + delta.x / nextCamera.zoom,
+        y: node.y + delta.y / nextCamera.zoom,
       });
     }
 
@@ -129,8 +145,8 @@ export function CanvasRenderer() {
       onWheel={(event) => {
         event.preventDefault();
         const point = getCanvasPoint(event);
-        const factor = event.deltaY > 0 ? 0.92 : 1.08;
-        uiStore.setCamera(zoomAt(uiStore.getState().camera, point, factor));
+        const delta = event.deltaY > 0 ? -0.08 : 0.08;
+        useUIStore.getState().zoomCamera(delta, point.x, point.y);
       }}
       ref={canvasRef}
     />

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { uiStore } from "@/lib/store/uiStore";
+import { createCamera } from "@/lib/canvas/camera";
+import { useUIStore } from "@/lib/store/uiStore";
 
 export function useKeyboard() {
   useEffect(() => {
@@ -11,20 +12,20 @@ export function useKeyboard() {
       }
 
       if (event.key === "v") {
-        uiStore.setActiveTool("select");
+        useUIStore.getState().setActiveTool("select");
       }
 
       if (event.key === "n") {
-        uiStore.setActiveTool("add-node");
+        useUIStore.getState().setActiveTool("add-node");
       }
 
       if (event.key === " ") {
         event.preventDefault();
-        uiStore.setActiveTool("pan");
+        useUIStore.getState().setActiveTool("pan");
       }
 
       if (event.key === "0") {
-        uiStore.resetCamera();
+        useUIStore.getState().setCamera(createCamera());
       }
     };
 

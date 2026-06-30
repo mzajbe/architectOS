@@ -5,7 +5,7 @@ import { useUIStore } from "@/lib/store/uiStore";
 
 export function DomOverlay() {
   const nodeCount = useGraphStore((state) => state.nodes.length);
-  const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
+  const selectedNodeId = useUIStore((state) => state.selectedNodeId);
   const activeTool = useUIStore((state) => state.activeTool);
   const zoom = useUIStore((state) => Math.round(state.camera.zoom * 100));
 

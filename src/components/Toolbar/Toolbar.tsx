@@ -2,7 +2,7 @@
 
 import { IconButton } from "@/components/UI/IconButton";
 import type { CanvasState } from "@/lib/canvas/types";
-import { uiStore, useUIStore } from "@/lib/store/uiStore";
+import { useUIStore } from "@/lib/store/uiStore";
 
 const tools: Array<{ id: CanvasState["activeTool"]; label: string; icon: string }> = [
   { id: "select", label: "Select", icon: "/icons/select.svg" },
@@ -12,6 +12,7 @@ const tools: Array<{ id: CanvasState["activeTool"]; label: string; icon: string 
 
 export function Toolbar() {
   const activeTool = useUIStore((state) => state.activeTool);
+  const setActiveTool = useUIStore((state) => state.setActiveTool);
 
   return (
     <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
@@ -22,7 +23,7 @@ export function Toolbar() {
             isActive={activeTool === tool.id}
             key={tool.id}
             label={tool.label}
-            onClick={() => uiStore.setActiveTool(tool.id)}
+            onClick={() => setActiveTool(tool.id)}
           />
         ))}
       </div>

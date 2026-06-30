@@ -1,16 +1,19 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import type { CanvasState, Edge, Node, Point } from "@/lib/canvas/types";
+import { create } from "zustand";
+import type { Edge, Node } from "@/lib/canvas/types";
 
-type GraphState = Pick<CanvasState, "edges" | "nodes" | "selectedNodeId"> & {
-  selectedNodeId: string | null;
+type GraphStore = {
+  nodes: Node[];
+  edges: Edge[];
+  addNode: (node: Node) => void;
+  updateNode: (id: string, updates: Partial<Node>) => void;
+  deleteNode: (id: string) => void;
+  addEdge: (edge: Edge) => void;
+  deleteEdge: (id: string) => void;
 };
 
-type GraphListener = () => void;
-
-const initialState: GraphState = {
-  selectedNodeId: "node-1",
+export const useGraphStore = create<GraphStore>((set) => ({
   nodes: [
     {
       id: "node-1",
@@ -52,70 +55,29 @@ const initialState: GraphState = {
       toNodeId: "node-3",
     },
   ],
-};
-
-let state = initialState;
-const listeners = new Set<GraphListener>();
-
-function emit() {
-  listeners.forEach((listener) => listener());
-}
-
-function setState(nextState: GraphState) {
-  state = nextState;
-  emit();
-}
-
-export const graphStore = {
-  getState: () => state,
-  subscribe(listener: GraphListener) {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
-  },
-  selectNode(nodeId: string | null) {
-    setState({ ...state, selectedNodeId: nodeId });
-  },
-  addNode(position: Point, color = "#ffffff") {
-    const nextId = `node-${state.nodes.length + 1}`;
-    const node: Node = {
-      id: nextId,
-      label: `Node ${state.nodes.length + 1}`,
-      color,
-      x: position.x,
-      y: position.y,
-      width: 168,
-      height: 68,
-    };
-
-    setState({
-      ...state,
-      selectedNodeId: node.id,
+  addNode: (node) =>
+    set((state) => ({
       nodes: [...state.nodes, node],
-    });
-  },
-  moveNode(nodeId: string, delta: Point) {
-    setState({
-      ...state,
+    })),
+  updateNode: (id, updates) =>
+    set((state) => ({
       nodes: state.nodes.map((node) =>
-        node.id === nodeId
-          ? {
-              ...node,
-              x: node.x + delta.x,
-              y: node.y + delta.y,
-            }
-          : node,
+        node.id === id ? { ...node, ...updates } : node,
       ),
-    });
-  },
-  setEdges(edges: Edge[]) {
-    setState({ ...state, edges });
-  },
-};
-
-export function useGraphStore<T>(selector: (nextState: GraphState) => T) {
-  return useSyncExternalStore(
-    graphStore.subscribe,
-    () => selector(graphStore.getState()),
-    () => selector(initialState),
-  );
-}
+    })),
+  deleteNode: (id) =>
+    set((state) => ({
+      nodes: state.nodes.filter((node) => node.id !== id),
+      edges: state.edges.filter(
+        (edge) => edge.fromNodeId !== id && edge.toNodeId !== id,
+      ),
+    })),
+  addEdge: (edge) =>
+    set((state) => ({
+      edges: [...state.edges, edge],
+    })),
+  deleteEdge: (id) =>
+    set((state) => ({
+      edges: state.edges.filter((edge) => edge.id !== id),
+    })),
+}));

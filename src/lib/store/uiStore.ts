@@ -1,51 +1,51 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { createCamera } from "@/lib/canvas/camera";
+import { create } from "zustand";
+import { clampZoom } from "@/lib/canvas/camera";
 import type { Camera, CanvasState } from "@/lib/canvas/types";
 
-type UIState = Pick<CanvasState, "activeTool" | "camera">;
+type ActiveTool = CanvasState["activeTool"];
 
-type UIListener = () => void;
+type UIStore = {
+  camera: Camera;
+  selectedNodeId: string | null;
+  activeTool: ActiveTool;
+  setCamera: (camera: Camera) => void;
+  panCamera: (dx: number, dy: number) => void;
+  zoomCamera: (delta: number, centerX: number, centerY: number) => void;
+  setSelectedNodeId: (id: string | null) => void;
+  setActiveTool: (tool: ActiveTool) => void;
+};
 
-const initialState: UIState = {
+const initialCamera: Camera = { x: 0, y: 0, zoom: 1 };
+
+export const useUIStore = create<UIStore>((set) => ({
+  camera: initialCamera,
+  selectedNodeId: "node-1",
   activeTool: "select",
-  camera: createCamera(),
-};
+  setCamera: (camera) => set({ camera }),
+  panCamera: (dx, dy) =>
+    set((state) => ({
+      camera: {
+        ...state.camera,
+        x: state.camera.x + dx,
+        y: state.camera.y + dy,
+      },
+    })),
+  zoomCamera: (delta, centerX, centerY) =>
+    set((state) => {
+      const nextZoom = clampZoom(state.camera.zoom + delta);
+      const worldX = (centerX - state.camera.x) / state.camera.zoom;
+      const worldY = (centerY - state.camera.y) / state.camera.zoom;
 
-let state = initialState;
-const listeners = new Set<UIListener>();
-
-function emit() {
-  listeners.forEach((listener) => listener());
-}
-
-function setState(nextState: UIState) {
-  state = nextState;
-  emit();
-}
-
-export const uiStore = {
-  getState: () => state,
-  subscribe(listener: UIListener) {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
-  },
-  setActiveTool(activeTool: CanvasState["activeTool"]) {
-    setState({ ...state, activeTool });
-  },
-  setCamera(camera: Camera) {
-    setState({ ...state, camera });
-  },
-  resetCamera() {
-    setState({ ...state, camera: createCamera() });
-  },
-};
-
-export function useUIStore<T>(selector: (nextState: UIState) => T) {
-  return useSyncExternalStore(
-    uiStore.subscribe,
-    () => selector(uiStore.getState()),
-    () => selector(initialState),
-  );
-}
+      return {
+        camera: {
+          zoom: nextZoom,
+          x: centerX - worldX * nextZoom,
+          y: centerY - worldY * nextZoom,
+        },
+      };
+    }),
+  setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+  setActiveTool: (tool) => set({ activeTool: tool }),
+}));
