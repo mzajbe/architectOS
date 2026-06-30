@@ -2,12 +2,9 @@
 
 import { useSyncExternalStore } from "react";
 import { createCamera } from "@/lib/canvas/camera";
-import type { CameraState, CanvasTool } from "@/lib/canvas/types";
+import type { Camera, CanvasState } from "@/lib/canvas/types";
 
-type UIState = {
-  activeTool: CanvasTool;
-  camera: CameraState;
-};
+type UIState = Pick<CanvasState, "activeTool" | "camera">;
 
 type UIListener = () => void;
 
@@ -34,10 +31,10 @@ export const uiStore = {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
-  setActiveTool(activeTool: CanvasTool) {
+  setActiveTool(activeTool: CanvasState["activeTool"]) {
     setState({ ...state, activeTool });
   },
-  setCamera(camera: CameraState) {
+  setCamera(camera: Camera) {
     setState({ ...state, camera });
   },
   resetCamera() {

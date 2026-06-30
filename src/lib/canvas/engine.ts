@@ -1,14 +1,19 @@
 import { getNodeCenter } from "./math";
-import type { CameraState, GraphEdge, GraphNode, Size } from "./types";
+import type { Camera, Edge, Node } from "./types";
+
+type Size = {
+  width: number;
+  height: number;
+};
 
 const NODE_RADIUS = 8;
 
 export function renderGraph(
   ctx: CanvasRenderingContext2D,
   canvasSize: Size,
-  camera: CameraState,
-  nodes: GraphNode[],
-  edges: GraphEdge[],
+  camera: Camera,
+  nodes: Node[],
+  edges: Edge[],
   selectedNodeId: string | null,
 ) {
   ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
@@ -27,7 +32,7 @@ export function renderGraph(
 function drawGrid(
   ctx: CanvasRenderingContext2D,
   canvasSize: Size,
-  camera: CameraState,
+  camera: Camera,
 ) {
   const spacing = 32 * camera.zoom;
   const offsetX = camera.x % spacing;
@@ -56,11 +61,11 @@ function drawGrid(
 
 function drawEdge(
   ctx: CanvasRenderingContext2D,
-  edge: GraphEdge,
-  nodes: GraphNode[],
+  edge: Edge,
+  nodes: Node[],
 ) {
-  const from = nodes.find((node) => node.id === edge.from);
-  const to = nodes.find((node) => node.id === edge.to);
+  const from = nodes.find((node) => node.id === edge.fromNodeId);
+  const to = nodes.find((node) => node.id === edge.toNodeId);
 
   if (!from || !to) {
     return;
@@ -89,18 +94,17 @@ function drawEdge(
 
 function drawNode(
   ctx: CanvasRenderingContext2D,
-  node: GraphNode,
+  node: Node,
   isSelected: boolean,
 ) {
-  const { x, y } = node.position;
-  const { width, height } = node.size;
+  const { height, width, x, y } = node;
 
   ctx.save();
   ctx.shadowColor = "rgba(15, 23, 42, 0.14)";
   ctx.shadowBlur = 16;
   ctx.shadowOffsetY = 8;
   roundedRect(ctx, x, y, width, height, NODE_RADIUS);
-  ctx.fillStyle = node.kind === "decision" ? "#f8fafc" : "#ffffff";
+  ctx.fillStyle = node.color;
   ctx.fill();
 
   ctx.shadowColor = "transparent";

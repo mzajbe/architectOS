@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Size } from "@/lib/canvas/types";
+
+type Size = {
+  width: number;
+  height: number;
+};
 
 export function useCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

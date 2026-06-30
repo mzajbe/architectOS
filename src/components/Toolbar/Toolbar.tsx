@@ -1,10 +1,10 @@
 "use client";
 
 import { IconButton } from "@/components/UI/IconButton";
-import type { CanvasTool } from "@/lib/canvas/types";
+import type { CanvasState } from "@/lib/canvas/types";
 import { uiStore, useUIStore } from "@/lib/store/uiStore";
 
-const tools: Array<{ id: CanvasTool; label: string; icon: string }> = [
+const tools: Array<{ id: CanvasState["activeTool"]; label: string; icon: string }> = [
   { id: "select", label: "Select", icon: "/icons/select.svg" },
   { id: "add-node", label: "Add node", icon: "/icons/add-node.svg" },
   { id: "pan", label: "Pan", icon: "/icons/pan.svg" },

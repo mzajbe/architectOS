@@ -1,39 +1,34 @@
-export type NodeKind = "idea" | "task" | "decision";
-
-export type CanvasTool = "select" | "add-node" | "pan";
-
-export type Point = {
+export interface Point {
   x: number;
   y: number;
-};
+}
 
-export type Size = {
+export interface Node {
+  id: string;
+  x: number;
+  y: number;
   width: number;
   height: number;
-};
-
-export type Rect = Point & Size;
-
-export type CameraState = Point & {
-  zoom: number;
-};
-
-export type GraphNode = {
-  id: string;
   label: string;
-  kind: NodeKind;
-  position: Point;
-  size: Size;
-};
+  color: string;
+}
 
-export type GraphEdge = {
+export interface Edge {
   id: string;
-  from: string;
-  to: string;
-  label?: string;
-};
+  fromNodeId: string;
+  toNodeId: string;
+}
 
-export type GraphSnapshot = {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-};
+export interface Camera {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+export interface CanvasState {
+  nodes: Node[];
+  edges: Edge[];
+  camera: Camera;
+  selectedNodeId: string | null;
+  activeTool: "select" | "add-node" | "pan";
+}

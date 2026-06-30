@@ -1,22 +1,27 @@
-import type { GraphNode, Point, Rect } from "./types";
+import type { Node, Point } from "./types";
+
+type Rect = Point & {
+  width: number;
+  height: number;
+};
 
 export function distance(a: Point, b: Point) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-export function getNodeBounds(node: GraphNode): Rect {
+export function getNodeBounds(node: Node): Rect {
   return {
-    x: node.position.x,
-    y: node.position.y,
-    width: node.size.width,
-    height: node.size.height,
+    x: node.x,
+    y: node.y,
+    width: node.width,
+    height: node.height,
   };
 }
 
-export function getNodeCenter(node: GraphNode): Point {
+export function getNodeCenter(node: Node): Point {
   return {
-    x: node.position.x + node.size.width / 2,
-    y: node.position.y + node.size.height / 2,
+    x: node.x + node.width / 2,
+    y: node.y + node.height / 2,
   };
 }
 
@@ -29,7 +34,7 @@ export function pointInRect(point: Point, rect: Rect) {
   );
 }
 
-export function hitTestNodes(point: Point, nodes: GraphNode[]) {
+export function hitTestNodes(point: Point, nodes: Node[]) {
   for (let index = nodes.length - 1; index >= 0; index -= 1) {
     const node = nodes[index];
 
