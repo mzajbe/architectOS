@@ -1,48 +1,49 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useState } from "react";
 import { CanvasEngine } from "@/lib/canvas/engine";
+import { useGraphStore } from "@/lib/store/graphStore";
+import { useUIStore } from "@/lib/store/uiStore";
 
-type Size = {
-  width: number;
-  height: number;
-};
-
-export function useCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const engineRef = useRef<CanvasEngine | null>(null);
-  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
+export function useCanvas(
+  canvasRef: RefObject<HTMLCanvasElement | null>,
+): CanvasEngine | null {
+  const [engine, setEngine] = useState<CanvasEngine | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const parent = canvas?.parentElement;
 
-    if (!canvas || !parent) {
+    if (!canvas) {
       return;
     }
 
-    const engine = new CanvasEngine(canvas);
-    engineRef.current = engine;
+    const canvasEngine = new CanvasEngine(canvas);
 
-    const resize = () => {
-      const rect = parent.getBoundingClientRect();
-      const width = Math.max(1, Math.floor(rect.width));
-      const height = Math.max(1, Math.floor(rect.height));
+    const updateEngine = () => {
+      const graphState = useGraphStore.getState();
+      const uiState = useUIStore.getState();
 
-      setSize({ width, height });
+      canvasEngine.updateState(
+        graphState.nodes,
+        graphState.edges,
+        uiState.camera,
+        uiState.selectedNodeId,
+      );
     };
 
-    resize();
+    updateEngine();
+    setEngine(canvasEngine);
 
-    const observer = new ResizeObserver(resize);
-    observer.observe(parent);
+    const unsubscribeGraph = useGraphStore.subscribe(updateEngine);
+    const unsubscribeUI = useUIStore.subscribe(updateEngine);
 
     return () => {
-      observer.disconnect();
-      engine.destroy();
-      engineRef.current = null;
+      unsubscribeGraph();
+      unsubscribeUI();
+      canvasEngine.destroy();
+      setEngine(null);
     };
-  }, []);
+  }, [canvasRef]);
 
-  return { canvasRef, engineRef, size };
+  return engine;
 }

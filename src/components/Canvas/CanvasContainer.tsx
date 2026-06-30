@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { MouseEvent, WheelEvent } from "react";
 import { useCanvas } from "@/hooks/useCanvas";
 import { useKeyboard } from "@/hooks/useKeyboard";
@@ -25,41 +25,12 @@ const NODE_WIDTH = 168;
 const NODE_HEIGHT = 68;
 
 export function CanvasContainer() {
-  const { canvasRef, engineRef } = useCanvas();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const engine = useCanvas(canvasRef);
   const activeTool = useUIStore((state) => state.activeTool);
   const dragState = useRef<DragState>(null);
 
   useKeyboard();
-
-  useEffect(() => {
-    const updateEngine = () => {
-      const engine = engineRef.current;
-
-      if (!engine) {
-        return;
-      }
-
-      const graphState = useGraphStore.getState();
-      const uiState = useUIStore.getState();
-
-      engine.updateState(
-        graphState.nodes,
-        graphState.edges,
-        uiState.camera,
-        uiState.selectedNodeId,
-      );
-    };
-
-    updateEngine();
-
-    const unsubscribeGraph = useGraphStore.subscribe(updateEngine);
-    const unsubscribeUI = useUIStore.subscribe(updateEngine);
-
-    return () => {
-      unsubscribeGraph();
-      unsubscribeUI();
-    };
-  }, [engineRef]);
 
   const getCanvasPoint = (
     event: MouseEvent<HTMLCanvasElement> | WheelEvent<HTMLCanvasElement>,
@@ -74,7 +45,6 @@ export function CanvasContainer() {
 
   const handleMouseDown = (event: MouseEvent<HTMLCanvasElement>) => {
     const screenPoint = getCanvasPoint(event);
-    const engine = engineRef.current;
     const {
       activeTool: currentTool,
       camera,
