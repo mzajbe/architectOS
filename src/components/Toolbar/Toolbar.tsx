@@ -22,8 +22,8 @@ export function Toolbar() {
   const setActiveTool = useUIStore((state) => state.setActiveTool);
 
   return (
-    <div className="fixed left-1/2 top-4 z-20 -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-lg shadow-slate-900/10">
-      <div className="flex items-center gap-1">
+    <header className="fixed inset-x-0 top-0 z-20 flex h-16 items-center justify-center border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-900/10 backdrop-blur">
+      <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-sm">
         {tools.map(({ Icon, id, label }) => {
           const isActive = activeTool === id;
 
@@ -45,6 +45,6 @@ export function Toolbar() {
           );
         })}
       </div>
-    </div>
+    </header>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useRef } from "react";
 import type { MouseEvent, WheelEvent } from "react";
-import { Toolbar } from "@/components/Toolbar/Toolbar";
 import { useCanvas } from "@/hooks/useCanvas";
 import { useKeyboard } from "@/hooks/useKeyboard";
 import { generateId, screenToWorld } from "@/lib/canvas/math";
@@ -139,23 +138,18 @@ export function CanvasContainer() {
   };
 
   return (
-    <>
-      <Toolbar />
-      <canvas
-        className="block h-screen w-screen bg-slate-100"
-        onMouseDown={handleMouseDown}
-        onMouseLeave={stopDrag}
-        onMouseMove={handleMouseMove}
-        onMouseUp={stopDrag}
-        onWheel={handleWheel}
-        ref={canvasRef}
-        style={{
-          cursor: activeTool === "pan" ? "grab" : "crosshair",
-          height: "100vh",
-          touchAction: "none",
-          width: "100vw",
-        }}
-      />
-    </>
+    <canvas
+      className="block h-full w-full bg-slate-100"
+      onMouseDown={handleMouseDown}
+      onMouseLeave={stopDrag}
+      onMouseMove={handleMouseMove}
+      onMouseUp={stopDrag}
+      onWheel={handleWheel}
+      ref={canvasRef}
+      style={{
+        cursor: activeTool === "pan" ? "grab" : "crosshair",
+        touchAction: "none",
+      }}
+    />
   );
 }

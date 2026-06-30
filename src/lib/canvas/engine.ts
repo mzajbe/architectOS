@@ -75,9 +75,10 @@ export class CanvasEngine {
 
   private resize(): void {
     const dpr = window.devicePixelRatio || 1;
+    const rect = this.canvas.getBoundingClientRect();
 
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
+    this.width = Math.max(1, Math.floor(rect.width));
+    this.height = Math.max(1, Math.floor(rect.height));
     this.canvas.width = Math.floor(this.width * dpr);
     this.canvas.height = Math.floor(this.height * dpr);
     this.canvas.style.width = `${this.width}px`;
