@@ -1,13 +1,20 @@
 "use client";
 
-import { IconButton } from "@/components/UI/IconButton";
+import { CursorArrowIcon, HandIcon, PlusIcon } from "@radix-ui/react-icons";
+import type { ComponentType } from "react";
 import type { CanvasState } from "@/lib/canvas/types";
 import { useUIStore } from "@/lib/store/uiStore";
 
-const tools: Array<{ id: CanvasState["activeTool"]; label: string; icon: string }> = [
-  { id: "select", label: "Select", icon: "/icons/select.svg" },
-  { id: "add-node", label: "Add node", icon: "/icons/add-node.svg" },
-  { id: "pan", label: "Pan", icon: "/icons/pan.svg" },
+type Tool = {
+  id: CanvasState["activeTool"];
+  label: string;
+  Icon: ComponentType<{ className?: string }>;
+};
+
+const tools: Tool[] = [
+  { id: "select", label: "Select Tool", Icon: CursorArrowIcon },
+  { id: "add-node", label: "Add Node Tool", Icon: PlusIcon },
+  { id: "pan", label: "Pan Tool", Icon: HandIcon },
 ];
 
 export function Toolbar() {
@@ -15,20 +22,29 @@ export function Toolbar() {
   const setActiveTool = useUIStore((state) => state.setActiveTool);
 
   return (
-    <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
-      <div className="flex items-center gap-2">
-        {tools.map((tool) => (
-          <IconButton
-            icon={tool.icon}
-            isActive={activeTool === tool.id}
-            key={tool.id}
-            label={tool.label}
-            onClick={() => setActiveTool(tool.id)}
-          />
-        ))}
+    <div className="fixed left-1/2 top-4 z-20 -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-lg shadow-slate-900/10">
+      <div className="flex items-center gap-1">
+        {tools.map(({ Icon, id, label }) => {
+          const isActive = activeTool === id;
+
+          return (
+            <button
+              aria-label={label}
+              className={`grid h-10 w-10 place-items-center rounded-md border text-slate-700 transition ${
+                isActive
+                  ? "border-blue-600 bg-blue-50 text-blue-700"
+                  : "border-transparent hover:bg-slate-100 hover:text-slate-950"
+              }`}
+              key={id}
+              onClick={() => setActiveTool(id)}
+              title={label}
+              type="button"
+            >
+              <Icon className="h-5 w-5" />
+            </button>
+          );
+        })}
       </div>
-      <div className="ml-3 h-6 w-px bg-slate-300" />
-      <span className="text-sm font-semibold text-slate-900">Architectos</span>
     </div>
   );
 }
