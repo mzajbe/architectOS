@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import type { Edge, Node } from "@/lib/canvas/types";
+import { clearCanvasStorage, loadCanvas, saveCanvas } from "@/lib/storage";
 
 type GraphStore = {
   nodes: Node[];
@@ -11,50 +12,14 @@ type GraphStore = {
   deleteNode: (id: string) => void;
   addEdge: (edge: Edge) => void;
   deleteEdge: (id: string) => void;
+  clearCanvas: () => void;
 };
 
+const savedCanvas = loadCanvas();
+
 export const useGraphStore = create<GraphStore>((set) => ({
-  nodes: [
-    {
-      id: "node-1",
-      label: "Site Strategy",
-      color: "#ffffff",
-      x: 96,
-      y: 112,
-      width: 180,
-      height: 72,
-    },
-    {
-      id: "node-2",
-      label: "Spatial Program",
-      color: "#ffffff",
-      x: 404,
-      y: 88,
-      width: 190,
-      height: 72,
-    },
-    {
-      id: "node-3",
-      label: "Material Logic",
-      color: "#f8fafc",
-      x: 398,
-      y: 240,
-      width: 190,
-      height: 72,
-    },
-  ],
-  edges: [
-    {
-      id: "edge-1",
-      fromNodeId: "node-1",
-      toNodeId: "node-2",
-    },
-    {
-      id: "edge-2",
-      fromNodeId: "node-1",
-      toNodeId: "node-3",
-    },
-  ],
+  nodes: savedCanvas?.nodes ?? [],
+  edges: savedCanvas?.edges ?? [],
   addNode: (node) =>
     set((state) => ({
       nodes: [...state.nodes, node],
@@ -80,4 +45,38 @@ export const useGraphStore = create<GraphStore>((set) => ({
     set((state) => ({
       edges: state.edges.filter((edge) => edge.id !== id),
     })),
+  clearCanvas: () => {
+    skipNextPersist = true;
+    clearCanvasStorage();
+    set({ nodes: [], edges: [] });
+  },
 }));
+
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let skipNextPersist = false;
+
+useGraphStore.subscribe((state) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+  }
+
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+
+    if (
+      skipNextPersist &&
+      state.nodes.length === 0 &&
+      state.edges.length === 0
+    ) {
+      skipNextPersist = false;
+      return;
+    }
+
+    skipNextPersist = false;
+    saveCanvas(state.nodes, state.edges);
+  }, 500);
+});

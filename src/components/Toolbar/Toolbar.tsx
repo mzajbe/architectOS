@@ -1,8 +1,14 @@
 "use client";
 
-import { CursorArrowIcon, HandIcon, PlusIcon } from "@radix-ui/react-icons";
+import {
+  CursorArrowIcon,
+  HandIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@radix-ui/react-icons";
 import type { ComponentType } from "react";
 import type { CanvasState } from "@/lib/canvas/types";
+import { useGraphStore } from "@/lib/store/graphStore";
 import { useUIStore } from "@/lib/store/uiStore";
 
 type Tool = {
@@ -21,6 +27,22 @@ const tools: Tool[] = [
 export function Toolbar() {
   const activeTool = useUIStore((state) => state.activeTool);
   const setActiveTool = useUIStore((state) => state.setActiveTool);
+  const setSelectedNodeId = useUIStore((state) => state.setSelectedNodeId);
+  const clearCanvas = useGraphStore((state) => state.clearCanvas);
+
+  const handleClearCanvas = () => {
+    const confirmed = window.confirm(
+      "Clear the canvas? This removes all nodes and edges.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    clearCanvas();
+    setSelectedNodeId(null);
+    setActiveTool("select");
+  };
 
   return (
     <header className="fixed inset-x-0 top-0 z-20 flex h-16 items-center justify-center border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-900/10 backdrop-blur">
@@ -46,6 +68,16 @@ export function Toolbar() {
             </button>
           );
         })}
+        <div className="mx-1 h-6 w-px bg-slate-200" />
+        <button
+          aria-label="Clear Canvas"
+          className="grid h-10 w-10 place-items-center rounded-md border border-transparent text-slate-500 outline-none transition hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-700 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+          onClick={handleClearCanvas}
+          title="Clear Canvas"
+          type="button"
+        >
+          <TrashIcon className="h-5 w-5" />
+        </button>
       </div>
     </header>
   );
